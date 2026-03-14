@@ -17,7 +17,6 @@ export const supabase = createClient(supabaseUrl, supabaseKey)
  * Creates the Supabase client instance
  * This client is used for all database operations and authentication
  */
-export const supabase = window.supabase?.createClient(supabaseUrl, supabaseAnonKey) || {
   // Fallback/mock client for development without Supabase
   from: (table) => ({
     select: () => Promise.resolve({ data: [], error: null }),
