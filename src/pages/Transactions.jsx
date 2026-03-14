@@ -1,0 +1,88 @@
+import React from 'react'
+import { useClients } from '../hooks/useClients'
+import { useTransactions } from '../hooks/useTransactions'
+import { Header } from '../components/layout'
+import { TransactionList } from '../components/transactions'
+import { TableSkeleton } from '../components/ui'
+
+/**
+ * Transactions Page Component
+ * 
+ * Page for managing financial transactions with CRUD operations and filters.
+ */
+const Transactions = ({ toast }) => {
+  const { clients, loading: clientsLoading } = useClients()
+  const { 
+    transactions, 
+    loading: transactionsLoading, 
+    filters, 
+    setFilters,
+    createTransaction, 
+    updateTransaction, 
+    deleteTransaction 
+  } = useTransactions()
+
+  // Handle create transaction
+  const handleCreate = async (transactionData) => {
+    const result = await createTransaction(transactionData)
+    if (result.success) {
+      toast?.success('Transação registrada com sucesso!')
+    } else {
+      toast?.error('Erro ao registrar transação')
+    }
+    return result
+  }
+
+  // Handle update transaction
+  const handleUpdate = async (id, transactionData) => {
+    const result = await updateTransaction(id, transactionData)
+    if (result.success) {
+      toast?.success('Transação atualizada com sucesso!')
+    } else {
+      toast?.error('Erro ao atualizar transação')
+    }
+    return result
+  }
+
+  // Handle delete transaction
+  const handleDelete = async (id) => {
+    const result = await deleteTransaction(id)
+    if (result.success) {
+      toast?.success('Transação excluída com sucesso!')
+    } else {
+      toast?.error('Erro ao excluir transação')
+    }
+    return result
+  }
+
+  const loading = clientsLoading || transactionsLoading
+
+  return (
+    <div className="min-h-screen">
+      <Header 
+        title="Transações"
+        subtitle="Gerencie suas entradas e saídas"
+      />
+      
+      <main className="p-4 lg:p-8">
+        {loading ? (
+          <TableSkeleton rows={5} columns={6} />
+        ) : (
+          <TransactionList
+            transactions={transactions}
+            clients={clients}
+            loading={loading}
+            filters={filters}
+            setFilters={setFilters}
+            onCreate={handleCreate}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+          />
+        )}
+      </main>
+    </div>
+  )
+}
+
+export default Transactions
+
