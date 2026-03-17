@@ -44,7 +44,7 @@ export const useTransactions = () => {
   const createTransaction = useCallback(async (transactionData) => {
     try {
       const { data, error: createError } = await supabase
-        .from(TABLE_NAME)
+        .from("pedidos_mover")
         .insert([transactionData])
         .select('*, clientes(nome)')
 
