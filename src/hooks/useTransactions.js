@@ -6,8 +6,8 @@ export const useTransactions = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   
-  // NOME DA TABELA - Verifique se é 'transacoes' ou 'transacoes_mover'
-  const TABLE_NAME = 'transacoes' 
+  // AJUSTE AQUI: Use o nome correto da sua tabela de transações do banco MOVER
+  const TABLE_NAME = 'pedidos_mover' 
 
   const [filters, setFilters] = useState({
     tipo: '',
@@ -22,20 +22,18 @@ export const useTransactions = () => {
       setLoading(true)
       setError(null)
       
-      // NOTA: Se a tabela de clientes mudou de nome, o 'clientes(nome)' abaixo pode falhar.
-      // Verifique a relação no Supabase.
+      // Removi o ', clientes(nome)' temporariamente para evitar erro de relação
+      // Se você tiver a FK configurada, pode voltar com ele depois
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
-        .select('*, clientes(nome)') 
-        .order('data', { ascending: false })
+        .select('*') 
+        .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
-
       setTransactions(data || [])
     } catch (err) {
-      console.error('ERRO REAL NO SUPABASE:', err.message)
+      console.error('ERRO SUPABASE FETCH:', err.message)
       setError(err.message)
-      setTransactions([]) // NUNCA coloque dados falsos aqui
     } finally {
       setLoading(false)
     }
@@ -44,18 +42,15 @@ export const useTransactions = () => {
   const createTransaction = useCallback(async (transactionData) => {
     try {
       const { data, error: createError } = await supabase
-        .from("pedidos_mover")
+        .from(TABLE_NAME)
         .insert([transactionData])
-        .select('*, clientes(nome)')
+        .select()
 
       if (createError) throw createError
-
-      if (data) {
-        setTransactions(prev => [data[0], ...prev])
-      }
+      if (data) setTransactions(prev => [data[0], ...prev])
       return { success: true, data: data?.[0] }
     } catch (err) {
-      console.error('Erro ao criar transação:', err.message)
+      console.error('ERRO SUPABASE CREATE:', err.message)
       return { success: false, error: err.message }
     }
   }, [])
@@ -68,16 +63,23 @@ export const useTransactions = () => {
         .eq('id', id)
 
       if (deleteError) throw deleteError
-
-      setClients(prev => prev.filter(t => t.id !== id))
+      // CORRIGIDO: Era setClients, mudei para setTransactions
+      setTransactions(prev => prev.filter(t => t.id !== id))
       return { success: true }
     } catch (err) {
-      console.error('Erro ao deletar transação:', err.message)
+      console.error('ERRO SUPABASE DELETE:', err.message)
       return { success: false, error: err.message }
     }
   }, [])
 
-  // ... (mantenha os useMemo de filtros e summary como estão, eles são apenas cálculos locais)
+  // CORRIGIDO: Adicionado o filtro que faltava para evitar tela branca
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      if (filters.tipo && t.tipo !== filters.tipo) return false
+      if (filters.categoria && t.categoria !== filters.categoria) return false
+      return true
+    })
+  }, [transactions, filters])
 
   useEffect(() => {
     fetchTransactions()
