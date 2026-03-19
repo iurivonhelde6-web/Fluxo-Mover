@@ -43,36 +43,29 @@ const Clients = ({ toast }) => {
     return result
   }
 
-  return (
-    <div className="min-h-screen">
-      <Header 
-        title="Clientes"
-        subtitle="Gerencie seus clientes e cadastros"
-      />
-      
-      <main className="p-4 lg:p-8">
-        {/* EXIBE MENSAGEM DE ERRO SE A API FALHAR, EM VEZ DE TELA BRANCA */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Erro de Conexão:</strong> {error}. Verifique as chaves do Supabase na Vercel.
+  // Dentro do return da sua página de Clientes:
+<tbody className="divide-y divide-stone-200">
+  {customers.map((cliente) => (
+    <tr key={cliente.id_pedido} className="hover:bg-stone-50">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="text-sm font-medium text-stone-900">
+            {/* Aqui usamos a coluna cliente_info que tem o nome no seu banco */}
+            {cliente.cliente_info || 'Sem nome'}
           </div>
-        )}
-
-        {loading ? (
-          <TableSkeleton rows={5} columns={5} />
-        ) : (
-          <ClientList
-            // GARANTE que clients seja sempre um array para evitar erro de .map()
-            clients={Array.isArray(clients) ? clients : []}
-            loading={loading}
-            onCreate={handleCreate}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-          />
-        )}
-      </main>
-    </div>
-  )
-}
-
-export default Clients
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
+        {/* Se tiver a coluna de contacto/cpf, coloque aqui, senão use frete ou outro dado */}
+        {cliente.contato_cliente || '-'}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-stone-500">
+        {/* Mostra a data do último pedido desse cliente */}
+        {cliente.data_entrega}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <button className="text-sage-600 hover:text-sage-900">Ver Pedidos</button>
+      </td>
+    </tr>
+  ))}
+</tbody>
