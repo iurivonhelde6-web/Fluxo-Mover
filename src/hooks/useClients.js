@@ -18,7 +18,7 @@ export const useClients = () => {
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('id_pedidos', { ascending: false })
 
       if (fetchError) throw fetchError
 
