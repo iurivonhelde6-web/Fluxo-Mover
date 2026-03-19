@@ -22,7 +22,7 @@ export const useTransactions = () => {
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .order('id_pedido', { ascending: false }); // PONTO E VÍRGULA E PARÊNTESE CORRIGIDOS
+        .order('id_pedido', { ascending: false });
 
       if (fetchError) throw fetchError
       setTransactions(data || [])
@@ -62,28 +62,46 @@ export const useTransactions = () => {
   }, [transactions, filters])
 
   const summary = useMemo(() => {
-    const initial = { totalEntradas: 0, totalSaidas: 0, saldo: 0, quantidade: 0, faturado: 0 }
+    const initial = { totalEntradas: 0, saldo: 0, faturado: 0, quantidade: 0, totalPendente: 0 }
     if (!filteredTransactions.length) return initial
 
     return filteredTransactions.reduce((acc, t) => {
       const pago = Number(t.valor_pago) || 0
       const total = Number(t.valor_total) || 0
+      const pendente = Number(t.valor_restante) || 0
       return {
         ...acc,
         totalEntradas: acc.totalEntradas + pago,
         saldo: acc.saldo + pago,
         faturado: acc.faturado + total,
+        totalPendente: acc.totalPendente + pendente,
         quantidade: acc.quantidade + 1
       }
     }, initial)
   }, [filteredTransactions])
 
+  // LÓGICA PARA GRÁFICOS MENSAIS (Resolve os gráficos em branco)
+  const transactionsByMonth = useMemo(() => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const dataMap = months.map(label => ({ label, entradas: 0, saidas: 0 }));
+
+    filteredTransactions.forEach(t => {
+      const mesStr = t.data_entrega?.split('.')[1]; 
+      const mesIndex = parseInt(mesStr, 10) - 1;
+      if (mesIndex >= 0 && mesIndex < 12) {
+        dataMap[mesIndex].entradas += Number(t.valor_pago) || 0;
+      }
+    });
+    return dataMap;
+  }, [filteredTransactions]);
+
+  // LÓGICA POR CATEGORIA/FRETE
   const transactionsByCategory = useMemo(() => {
     const grouped = {}
     filteredTransactions.forEach(t => {
       const cat = t.frete || 'Geral' 
       if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
-      grouped[cat]['entrada'] += (Number(t.valor_pago) || 0)
+      grouped[cat].entrada += (Number(t.valor_pago) || 0)
     })
     return grouped
   }, [filteredTransactions])
@@ -99,6 +117,7 @@ export const useTransactions = () => {
     filters,
     setFilters,
     summary,
+    transactionsByMonth,
     transactionsByCategory,
     fetchTransactions,
     deleteTransaction,
