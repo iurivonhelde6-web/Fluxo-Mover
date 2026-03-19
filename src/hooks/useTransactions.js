@@ -63,4 +63,44 @@ export const useTransactions = () => {
 
   const summary = useMemo(() => {
     const initial = { totalEntradas: 0, totalSaidas: 0, saldo: 0, quantidade: 0, faturado: 0 }
-    if (!filteredTransactions.length)
+    if (!filteredTransactions.length) return initial
+
+    return filteredTransactions.reduce((acc, t) => {
+      const pago = Number(t.valor_pago) || 0
+      const total = Number(t.valor_total) || 0
+      return {
+        ...acc,
+        totalEntradas: acc.totalEntradas + pago,
+        saldo: acc.saldo + pago,
+        faturado: acc.faturado + total,
+        quantidade: acc.quantidade + 1
+      }
+    }, initial)
+  }, [filteredTransactions])
+
+  const transactionsByCategory = useMemo(() => {
+    const grouped = {}
+    filteredTransactions.forEach(t => {
+      const cat = t.frete || 'Geral' 
+      if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
+      grouped[cat]['entrada'] += (Number(t.valor_pago) || 0)
+    })
+    return grouped
+  }, [filteredTransactions])
+
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
+
+  return {
+    transactions: filteredTransactions,
+    loading,
+    error,
+    filters,
+    setFilters,
+    summary,
+    transactionsByCategory,
+    fetchTransactions,
+    deleteTransaction,
+  }
+}
