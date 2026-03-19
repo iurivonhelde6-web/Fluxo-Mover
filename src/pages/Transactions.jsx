@@ -7,14 +7,14 @@ import { TableSkeleton } from '../components/ui'
 
 /**
  * Transactions Page Component
- * 
- * Page for managing financial transactions with CRUD operations and filters.
+ * * Page for managing financial transactions with CRUD operations and filters.
  */
 const Transactions = ({ toast }) => {
   const { clients, loading: clientsLoading } = useClients()
   const { 
     transactions, 
     loading: transactionsLoading, 
+    error, // Adicionado para monitorar erros do banco
     filters, 
     setFilters,
     createTransaction, 
@@ -65,14 +65,22 @@ const Transactions = ({ toast }) => {
       />
       
       <main className="p-4 lg:p-8">
+        {/* Aviso visual caso o Supabase retorne erro */}
+        {error && (
+          <div className="mb-4 p-3 bg-amber-50 border-l-4 border-amber-500 text-amber-700 text-sm">
+            Nota: Alguns dados podem não estar disponíveis no momento.
+          </div>
+        )}
+
         {loading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : (
           <TransactionList
-            transactions={transactions}
-            clients={clients}
+            // BLINDAGEM: Garante que nunca passe 'undefined' para os mapas internos
+            transactions={transactions || []}
+            clients={clients || []}
             loading={loading}
-            filters={filters}
+            filters={filters || {}}
             setFilters={setFilters}
             onCreate={handleCreate}
             onUpdate={handleUpdate}
@@ -85,4 +93,3 @@ const Transactions = ({ toast }) => {
 }
 
 export default Transactions
-
