@@ -85,11 +85,20 @@ export const useTransactions = () => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     const dataMap = months.map(label => ({ label, entradas: 0, saidas: 0 }));
 
+    // Se não houver transações, retorna o mapa vazio formatado
+    if (!filteredTransactions || filteredTransactions.length === 0) return dataMap;
+
     filteredTransactions.forEach(t => {
-      const mesStr = t.data_entrega?.split('.')[1]; 
-      const mesIndex = parseInt(mesStr, 10) - 1;
-      if (mesIndex >= 0 && mesIndex < 12) {
-        dataMap[mesIndex].entradas += Number(t.valor_pago) || 0;
+      // Verificação ultra segura da data
+      const dataStr = t?.data_entrega;
+      if (dataStr && typeof dataStr === 'string' && dataStr.includes('.')) {
+        const partes = dataStr.split('.');
+        if (partes.length >= 2) {
+          const mesIndex = parseInt(partes[1], 10) - 1;
+          if (mesIndex >= 0 && mesIndex < 12) {
+            dataMap[mesIndex].entradas += Number(t.valor_pago) || 0;
+          }
+        }
       }
     });
     return dataMap;
