@@ -79,17 +79,19 @@ export const useTransactions = () => {
   }, [transactions, filters])
 
   // PROTEÇÃO: Summary que nunca retorna undefined (Evita erro 'reading saldo')
+ // PROTEÇÃO: Summary adaptado para as colunas da sua tabela pedidos_mover
   const summary = useMemo(() => {
     const initial = { totalEntradas: 0, totalSaidas: 0, saldo: 0, quantidade: 0 }
     if (!filteredTransactions.length) return initial
 
-    const entradas = filteredTransactions
-      .filter(t => t.tipo === 'entrada')
-      .reduce((sum, t) => sum + (Number(t.valor) || 0), 0)
+    // Na sua tabela, 'valor_pago' é o que realmente entrou
+    const entradas = filteredTransactions.reduce((sum, t) => {
+      return sum + (Number(t.valor_pago) || 0)
+    }, 0)
     
-    const saidas = filteredTransactions
-      .filter(t => t.tipo === 'saida')
-      .reduce((sum, t) => sum + (Number(t.valor) || 0), 0)
+    // Se você não tiver uma coluna de 'saida' na pedidos_mover, 
+    // o total de saídas será 0 por enquanto.
+    const saidas = 0 
 
     return {
       totalEntradas: entradas,
@@ -99,6 +101,19 @@ export const useTransactions = () => {
     }
   }, [filteredTransactions])
 
+  // Ajuste para não quebrar se a coluna 'categoria' ou 'tipo' não existir
+  const transactionsByCategory = useMemo(() => {
+    const grouped = {}
+    filteredTransactions.forEach(t => {
+      // Como não vi coluna 'categoria' na sua imagem, usei 'frete' ou 'Outros' como exemplo
+      const cat = t.categoria || t.frete || 'Pedidos' 
+      if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
+      
+      // Consideramos tudo como entrada (pago) já que é uma tabela de pedidos
+      grouped[cat]['entrada'] += (Number(t.valor_pago) || 0)
+    })
+    return grouped
+  }, [filteredTransactions])
   // PROTEÇÃO: Evita erro no Object.entries
   const transactionsByCategory = useMemo(() => {
     const grouped = {}
