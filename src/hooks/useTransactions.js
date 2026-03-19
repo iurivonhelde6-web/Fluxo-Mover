@@ -22,7 +22,7 @@ export const useTransactions = () => {
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .order('id_pedido', { ascending: false }) // Ajustado para id_pedido
+        .order('id_pedido','valor_total','valor_pago','valor_restante'  { ascending: false }) // Ajustado para id_pedido
 
       if (fetchError) throw fetchError
       setTransactions(data || [])
