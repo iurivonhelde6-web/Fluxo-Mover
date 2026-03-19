@@ -6,7 +6,6 @@ export const useTransactions = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   
-  // AJUSTE AQUI: Use o nome correto da sua tabela de transações do banco MOVER
   const TABLE_NAME = 'pedidos_mover' 
 
   const [filters, setFilters] = useState({
@@ -21,12 +20,9 @@ export const useTransactions = () => {
     try {
       setLoading(true)
       setError(null)
-      
-      // Removi o ', clientes(nome)' temporariamente para evitar erro de relação
-      // Se você tiver a FK configurada, pode voltar com ele depois
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
-        .select('*') 
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (fetchError) throw fetchError
@@ -34,6 +30,7 @@ export const useTransactions = () => {
     } catch (err) {
       console.error('ERRO SUPABASE FETCH:', err.message)
       setError(err.message)
+      setTransactions([]) 
     } finally {
       setLoading(false)
     }
@@ -63,7 +60,6 @@ export const useTransactions = () => {
         .eq('id', id)
 
       if (deleteError) throw deleteError
-      // CORRIGIDO: Era setClients, mudei para setTransactions
       setTransactions(prev => prev.filter(t => t.id !== id))
       return { success: true }
     } catch (err) {
@@ -72,14 +68,47 @@ export const useTransactions = () => {
     }
   }, [])
 
-  // CORRIGIDO: Adicionado o filtro que faltava para evitar tela branca
+  // PROTEÇÃO: Filtros com verificação de array
   const filteredTransactions = useMemo(() => {
+    if (!Array.isArray(transactions)) return []
     return transactions.filter(t => {
       if (filters.tipo && t.tipo !== filters.tipo) return false
       if (filters.categoria && t.categoria !== filters.categoria) return false
       return true
     })
   }, [transactions, filters])
+
+  // PROTEÇÃO: Summary que nunca retorna undefined (Evita erro 'reading saldo')
+  const summary = useMemo(() => {
+    const initial = { totalEntradas: 0, totalSaidas: 0, saldo: 0, quantidade: 0 }
+    if (!filteredTransactions.length) return initial
+
+    const entradas = filteredTransactions
+      .filter(t => t.tipo === 'entrada')
+      .reduce((sum, t) => sum + (Number(t.valor) || 0), 0)
+    
+    const saidas = filteredTransactions
+      .filter(t => t.tipo === 'saida')
+      .reduce((sum, t) => sum + (Number(t.valor) || 0), 0)
+
+    return {
+      totalEntradas: entradas,
+      totalSaidas: saidas,
+      saldo: entradas - saidas,
+      quantidade: filteredTransactions.length,
+    }
+  }, [filteredTransactions])
+
+  // PROTEÇÃO: Evita erro no Object.entries
+  const transactionsByCategory = useMemo(() => {
+    const grouped = {}
+    filteredTransactions.forEach(t => {
+      const cat = t.categoria || 'Outros'
+      if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
+      grouped[cat][t.tipo] += (Number(t.valor) || 0)
+    })
+    return grouped
+  }, [filteredTransactions])
 
   useEffect(() => {
     fetchTransactions()
@@ -91,9 +120,10 @@ export const useTransactions = () => {
     error,
     filters,
     setFilters,
+    summary, // Agora garantido que não é undefined
+    transactionsByCategory,
     fetchTransactions,
     createTransaction,
     deleteTransaction,
   }
 }
-
