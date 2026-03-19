@@ -23,7 +23,7 @@ export const useTransactions = () => {
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .order('id_pedido', { ascending: false })
+        .order('id_pedido', { ascending: false }) // Ajustado para id_pedido
 
       if (fetchError) throw fetchError
       setTransactions(data || [])
@@ -57,10 +57,10 @@ export const useTransactions = () => {
       const { error: deleteError } = await supabase
         .from(TABLE_NAME)
         .delete()
-        .eq('id', id)
+        .eq('id_pedido', id) // Ajustado para id_pedido
 
       if (deleteError) throw deleteError
-      setTransactions(prev => prev.filter(t => t.id !== id))
+      setTransactions(prev => prev.filter(t => t.id_pedido !== id))
       return { success: true }
     } catch (err) {
       console.error('ERRO SUPABASE DELETE:', err.message)
@@ -68,29 +68,17 @@ export const useTransactions = () => {
     }
   }, [])
 
-  // PROTEÇÃO: Filtros com verificação de array
   const filteredTransactions = useMemo(() => {
     if (!Array.isArray(transactions)) return []
-    return transactions.filter(t => {
-      if (filters.tipo && t.tipo !== filters.tipo) return false
-      if (filters.categoria && t.categoria !== filters.categoria) return false
-      return true
-    })
-  }, [transactions, filters])
+    return transactions
+  }, [transactions])
 
-  // PROTEÇÃO: Summary que nunca retorna undefined (Evita erro 'reading saldo')
- // PROTEÇÃO: Summary adaptado para as colunas da sua tabela pedidos_mover
   const summary = useMemo(() => {
     const initial = { totalEntradas: 0, totalSaidas: 0, saldo: 0, quantidade: 0 }
     if (!filteredTransactions.length) return initial
 
-    // Na sua tabela, 'valor_pago' é o que realmente entrou
-    const entradas = filteredTransactions.reduce((sum, t) => {
-      return sum + (Number(t.valor_pago) || 0)
-    }, 0)
-    
-    // Se você não tiver uma coluna de 'saida' na pedidos_mover, 
-    // o total de saídas será 0 por enquanto.
+    // Soma o valor_pago de todos os pedidos como Entrada
+    const entradas = filteredTransactions.reduce((sum, t) => sum + (Number(t.valor_pago) || 0), 0)
     const saidas = 0 
 
     return {
@@ -101,26 +89,12 @@ export const useTransactions = () => {
     }
   }, [filteredTransactions])
 
-  // Ajuste para não quebrar se a coluna 'categoria' ou 'tipo' não existir
   const transactionsByCategory = useMemo(() => {
     const grouped = {}
     filteredTransactions.forEach(t => {
-      // Como não vi coluna 'categoria' na sua imagem, usei 'frete' ou 'Outros' como exemplo
-      const cat = t.categoria || t.frete || 'Pedidos' 
+      const cat = t.frete || 'Geral' 
       if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
-      
-      // Consideramos tudo como entrada (pago) já que é uma tabela de pedidos
       grouped[cat]['entrada'] += (Number(t.valor_pago) || 0)
-    })
-    return grouped
-  }, [filteredTransactions])
-  // PROTEÇÃO: Evita erro no Object.entries
-  const transactionsByCategory = useMemo(() => {
-    const grouped = {}
-    filteredTransactions.forEach(t => {
-      const cat = t.categoria || 'Outros'
-      if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
-      grouped[cat][t.tipo] += (Number(t.valor) || 0)
     })
     return grouped
   }, [filteredTransactions])
@@ -135,7 +109,7 @@ export const useTransactions = () => {
     error,
     filters,
     setFilters,
-    summary, // Agora garantido que não é undefined
+    summary,
     transactionsByCategory,
     fetchTransactions,
     createTransaction,
