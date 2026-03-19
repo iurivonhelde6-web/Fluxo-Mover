@@ -5,84 +5,61 @@ import { Header } from '../components/layout'
 import { TransactionList } from '../components/transactions'
 import { TableSkeleton } from '../components/ui'
 
-/**
- * Transactions Page Component
- * * Page for managing financial transactions with CRUD operations and filters.
- */
 const Transactions = ({ toast }) => {
-  // Se o useClients estiver quebrando, comente a linha abaixo para testar
-  const { clients } = useClients() 
-  
+  const { clients, loading: clientsLoading } = useClients()
   const { 
     transactions, 
     loading: transactionsLoading, 
-    error, 
+    error,
     filters, 
     setFilters,
+    createTransaction, 
+    updateTransaction, 
     deleteTransaction 
   } = useTransactions()
 
-  // Forçamos o loading a olhar apenas para as transações por enquanto
-  const loading = transactionsLoading
+  // CORREÇÃO: Declaramos 'isLoading' apenas uma vez aqui
+  const isLoading = clientsLoading || transactionsLoading
 
-  // Handle create transaction
   const handleCreate = async (transactionData) => {
     const result = await createTransaction(transactionData)
-    if (result.success) {
-      toast?.success('Transação registrada com sucesso!')
-    } else {
-      toast?.error('Erro ao registrar transação')
-    }
+    if (result.success) toast?.success('Transação registrada com sucesso!')
+    else toast?.error('Erro ao registrar transação')
     return result
   }
 
-  // Handle update transaction
   const handleUpdate = async (id, transactionData) => {
     const result = await updateTransaction(id, transactionData)
-    if (result.success) {
-      toast?.success('Transação atualizada com sucesso!')
-    } else {
-      toast?.error('Erro ao atualizar transação')
-    }
+    if (result.success) toast?.success('Transação atualizada com sucesso!')
+    else toast?.error('Erro ao atualizar transação')
     return result
   }
 
-  // Handle delete transaction
   const handleDelete = async (id) => {
     const result = await deleteTransaction(id)
-    if (result.success) {
-      toast?.success('Transação excluída com sucesso!')
-    } else {
-      toast?.error('Erro ao excluir transação')
-    }
+    if (result.success) toast?.success('Transação excluída com sucesso!')
+    else toast?.error('Erro ao excluir transação')
     return result
   }
-
-  const loading = clientsLoading || transactionsLoading
 
   return (
     <div className="min-h-screen">
-      <Header 
-        title="Transações"
-        subtitle="Gerencie suas entradas e saídas"
-      />
+      <Header title="Transações" subtitle="Gerencie suas entradas e saídas" />
       
       <main className="p-4 lg:p-8">
-        {/* Aviso visual caso o Supabase retorne erro */}
         {error && (
           <div className="mb-4 p-3 bg-amber-50 border-l-4 border-amber-500 text-amber-700 text-sm">
             Nota: Alguns dados podem não estar disponíveis no momento.
           </div>
         )}
 
-        {loading ? (
+        {isLoading ? (
           <TableSkeleton rows={5} columns={6} />
         ) : (
           <TransactionList
-            // BLINDAGEM: Garante que nunca passe 'undefined' para os mapas internos
             transactions={transactions || []}
             clients={clients || []}
-            loading={loading}
+            loading={isLoading}
             filters={filters || {}}
             setFilters={setFilters}
             onCreate={handleCreate}
