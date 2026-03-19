@@ -2,17 +2,12 @@ import React, { useState } from 'react'
 import { Edit, Trash2, Plus, ArrowDownLeft, ArrowUpRight, Filter } from 'lucide-react'
 import { Table, Button, Modal, Input, Select } from '../ui'
 import TransactionForm from './TransactionForm'
-import { formatCurrency, formatDate, formatTransactionType, getTransactionTypeClass } from '../../lib/formatters'
+import { formatCurrency, getTransactionTypeClass } from '../../lib/formatters'
 import { TRANSACTION_TYPES, TRANSACTION_CATEGORIES } from '../../lib/validations'
 
-/**
- * TransactionList Component
- * 
- * Displays a list of transactions with filters, CRUD operations, and modals.
- */
 const TransactionList = ({ 
-  transactions, 
-  clients,
+  transactions = [], // Valor padrão para evitar erro de .map
+  clients = [],
   loading, 
   filters,
   setFilters,
@@ -26,64 +21,54 @@ const TransactionList = ({
   const [submitting, setSubmitting] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
 
-  // Type options
-  const typeOptions = [
-    { value: '', label: 'Todos os tipos' },
-    { value: TRANSACTION_TYPES.ENTRADA, label: 'Entrada' },
-    { value: TRANSACTION_TYPES.SAIDA, label: 'Saída' },
-  ]
-
-  // Category options
-  const categoryOptions = [
-    { value: '', label: 'Todas as categorias' },
-    ...TRANSACTION_CATEGORIES.map(cat => ({ value: cat, label: cat }))
-  ]
-
-  // Client options
+  // Opções de Cliente ajustadas para cliente_info
   const clientOptions = [
     { value: '', label: 'Todos os clientes' },
-    ...clients.map(client => ({ value: client.id, label: client.nome }))
+    ...clients.map(client => ({ 
+      value: client.id_pedido, 
+      label: client.cliente_info || 'Sem nome' 
+    }))
   ]
 
-  // Table columns
+  // Configuração das Colunas da Tabela
   const columns = [
     {
-      key: 'data',
+      key: 'data_entrega',
       header: 'Data',
-      render: (value) => formatDate(value),
+      render: (value) => value || '-', // Exibe a string "02.03" direto sem quebrar
     },
     {
-      key: 'clientes',
+      key: 'cliente_info',
       header: 'Cliente',
-      render: (_, row) => row.clientes?.nome || '-',
+      render: (value) => value || '-',
     },
     {
       key: 'tipo',
       header: 'Tipo',
+      render: () => (
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-sage-100 text-sage-700`}>
+          <ArrowDownLeft size={12} /> Entrada
+        </span>
+      ),
+    },
+    {
+      key: 'frete',
+      header: 'Frete/Categoria',
+      render: (value) => <span className="uppercase text-xs font-semibold text-stone-500">{value || 'Geral'}</span>
+    },
+    {
+      key: 'valor_pago',
+      header: 'Valor Pago',
       render: (value) => (
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getTransactionTypeClass(value)}`}>
-          {value === 'entrada' ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
-          {formatTransactionType(value)}
+        <span className="font-medium text-sage-700">
+          +{formatCurrency(value || 0)}
         </span>
       ),
     },
     {
-      key: 'categoria',
-      header: 'Categoria',
-    },
-    {
-      key: 'valor',
-      header: 'Valor',
-      render: (value, row) => (
-        <span className={`font-medium ${row.tipo === 'entrada' ? 'text-sage-700' : 'text-red-700'}`}>
-          {row.tipo === 'saida' ? '-' : '+'}{formatCurrency(value)}
-        </span>
-      ),
-    },
-    {
-      key: 'descricao',
-      header: 'Descrição',
-      render: (value) => value || '-',
+      key: 'id_pedido',
+      header: 'Ref.',
+      render: (value) => <span className="text-stone-400">#{value}</span>,
     },
     {
       key: 'actions',
@@ -97,7 +82,6 @@ const TransactionList = ({
               handleEdit(row)
             }}
             className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
-            title="Editar"
           >
             <Edit size={16} />
           </button>
@@ -107,7 +91,6 @@ const TransactionList = ({
               handleDeleteClick(row)
             }}
             className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-            title="Excluir"
           >
             <Trash2 size={16} />
           </button>
@@ -116,208 +99,76 @@ const TransactionList = ({
     },
   ]
 
-  // Handle create new transaction
-  const handleCreate = () => {
-    setSelectedTransaction(null)
-    setIsModalOpen(true)
-  }
-
-  // Handle edit transaction
   const handleEdit = (transaction) => {
     setSelectedTransaction(transaction)
     setIsModalOpen(true)
   }
 
-  // Handle delete click
   const handleDeleteClick = (transaction) => {
     setSelectedTransaction(transaction)
     setIsDeleteModalOpen(true)
   }
 
-  // Handle form submit
   const handleSubmit = async (formData) => {
     setSubmitting(true)
     try {
       if (selectedTransaction) {
-        await onUpdate(selectedTransaction.id, formData)
+        await onUpdate(selectedTransaction.id_pedido, formData)
       } else {
         await onCreate(formData)
       }
       setIsModalOpen(false)
       setSelectedTransaction(null)
-    } catch (error) {
-      console.error('Error saving transaction:', error)
     } finally {
       setSubmitting(false)
     }
   }
 
-  // Handle delete confirm
   const handleDeleteConfirm = async () => {
     if (!selectedTransaction) return
-    
-    try {
-      await onDelete(selectedTransaction.id)
-      setIsDeleteModalOpen(false)
-      setSelectedTransaction(null)
-    } catch (error) {
-      console.error('Error deleting transaction:', error)
-    }
-  }
-
-  // Clear filters
-  const clearFilters = () => {
-    setFilters({
-      tipo: '',
-      categoria: '',
-      cliente_id: '',
-      dataInicio: '',
-      dataFim: '',
-    })
+    await onDelete(selectedTransaction.id_pedido)
+    setIsDeleteModalOpen(false)
+    setSelectedTransaction(null)
   }
 
   return (
     <div className="space-y-4">
-      {/* Actions Bar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={showFilters ? 'primary' : 'secondary'}
-            icon={Filter}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            Filtros
-          </Button>
-          {(filters.tipo || filters.categoria || filters.cliente_id || filters.dataInicio || filters.dataFim) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-            >
-              Limpar filtros
-            </Button>
-          )}
-        </div>
         <Button
-          variant="primary"
-          icon={Plus}
-          onClick={handleCreate}
+          variant={showFilters ? 'primary' : 'secondary'}
+          icon={Filter}
+          onClick={() => setShowFilters(!showFilters)}
         >
+          Filtros
+        </Button>
+        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
           Nova Transação
         </Button>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="bg-white p-4 rounded-lg border border-stone-200 shadow-sm animate-slide-up">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <Select
-              label="Tipo"
-              value={filters.tipo}
-              onChange={(e) => setFilters(prev => ({ ...prev, tipo: e.target.value }))}
-              options={typeOptions}
-            />
-            <Select
-              label="Categoria"
-              value={filters.categoria}
-              onChange={(e) => setFilters(prev => ({ ...prev, categoria: e.target.value }))}
-              options={categoryOptions}
-            />
-            <Select
-              label="Cliente"
-              value={filters.cliente_id}
-              onChange={(e) => setFilters(prev => ({ ...prev, cliente_id: e.target.value }))}
-              options={clientOptions}
-            />
-            <Input
-              label="Data Início"
-              type="date"
-              value={filters.dataInicio}
-              onChange={(e) => setFilters(prev => ({ ...prev, dataInicio: e.target.value }))}
-            />
-            <Input
-              label="Data Fim"
-              type="date"
-              value={filters.dataFim}
-              onChange={(e) => setFilters(prev => ({ ...prev, dataFim: e.target.value }))}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Transactions Table */}
       <Table
         columns={columns}
         data={transactions}
         loading={loading}
-        emptyMessage="Nenhuma transação encontrada. Registre sua primeira transação!"
+        emptyMessage="Nenhuma transação encontrada no banco de dados."
       />
 
-      {/* Create/Edit Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false)
-          setSelectedTransaction(null)
-        }}
-        title={selectedTransaction ? 'Editar Transação' : 'Nova Transação'}
-        size="md"
-      >
+      {/* Modals mantidos com ajustes de ID */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Gerenciar Transação">
         <TransactionForm
           transaction={selectedTransaction}
-          clients={clients}
           onSubmit={handleSubmit}
-          onCancel={() => {
-            setIsModalOpen(false)
-            setSelectedTransaction(null)
-          }}
+          onCancel={() => setIsModalOpen(false)}
           loading={submitting}
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false)
-          setSelectedTransaction(null)
-        }}
-        title="Confirmar Exclusão"
-        size="sm"
-      >
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Confirmar Exclusão">
         <div className="space-y-4">
-          <p className="text-stone-600">
-            Tem certeza que deseja excluir esta transação?
-          </p>
-          {selectedTransaction && (
-            <div className="p-3 bg-stone-50 rounded-lg">
-              <p className="text-sm">
-                <strong>Valor:</strong> {formatCurrency(selectedTransaction.valor)}
-              </p>
-              <p className="text-sm">
-                <strong>Tipo:</strong> {formatTransactionType(selectedTransaction.tipo)}
-              </p>
-              <p className="text-sm">
-                <strong>Data:</strong> {formatDate(selectedTransaction.data)}
-              </p>
-            </div>
-          )}
-          <div className="flex justify-end gap-3 pt-4 border-t border-stone-200">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsDeleteModalOpen(false)
-                setSelectedTransaction(null)
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleDeleteConfirm}
-            >
-              Excluir
-            </Button>
+          <p className="text-stone-600">Deseja excluir o registro de <strong>{selectedTransaction?.cliente_info}</strong>?</p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
+            <Button variant="danger" onClick={handleDeleteConfirm}>Excluir</Button>
           </div>
         </div>
       </Modal>
@@ -326,4 +177,3 @@ const TransactionList = ({
 }
 
 export default TransactionList
-
