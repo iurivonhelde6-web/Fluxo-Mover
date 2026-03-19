@@ -9,11 +9,10 @@ export const useTransactions = () => {
   const TABLE_NAME = 'pedidos_mover' 
 
   const [filters, setFilters] = useState({
-    tipo: '',
-    categoria: '',
-    cliente_id: '',
-    dataInicio: '',
-    dataFim: '',
+    cliente_info: '',  
+    frete: '',         
+    data_entrega: '',  
+    id_pedido: '',     
   })
 
   const fetchTransactions = useCallback(async () => {
