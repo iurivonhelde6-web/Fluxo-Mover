@@ -15,7 +15,7 @@ export const useClients = () => {
       setError(null)
       
       const { data, error: fetchError } = await supabase
-        .from(TABLE_NAME)
+        .from(pedidos_mover)
         .select('*')
         .order('created_at', { ascending: false })
 
@@ -34,7 +34,7 @@ export const useClients = () => {
   const createClient = useCallback(async (clientData) => {
     try {
       const { data, error: createError } = await supabase
-        .from(TABLE_NAME)
+        .from(pedidos_mover)
         .insert([clientData])
         .select()
 
@@ -53,7 +53,7 @@ export const useClients = () => {
   const deleteClient = useCallback(async (id) => {
     try {
       const { error: deleteError } = await supabase
-        .from(TABLE_NAME)
+        .from(pedidos_mover)
         .delete()
         .eq('id', id)
 
