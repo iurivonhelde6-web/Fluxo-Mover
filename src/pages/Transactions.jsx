@@ -10,17 +10,20 @@ import { TableSkeleton } from '../components/ui'
  * * Page for managing financial transactions with CRUD operations and filters.
  */
 const Transactions = ({ toast }) => {
-  const { clients, loading: clientsLoading } = useClients()
+  // Se o useClients estiver quebrando, comente a linha abaixo para testar
+  const { clients } = useClients() 
+  
   const { 
     transactions, 
     loading: transactionsLoading, 
-    error, // Adicionado para monitorar erros do banco
+    error, 
     filters, 
     setFilters,
-    createTransaction, 
-    updateTransaction, 
     deleteTransaction 
   } = useTransactions()
+
+  // Forçamos o loading a olhar apenas para as transações por enquanto
+  const loading = transactionsLoading
 
   // Handle create transaction
   const handleCreate = async (transactionData) => {
