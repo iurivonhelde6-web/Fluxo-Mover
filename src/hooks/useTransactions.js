@@ -22,7 +22,7 @@ export const useTransactions = () => {
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
-        .order('id_pedido' { ascending: false }) // Ajustado para id_pedido
+        .order('id_pedido', { ascending: false }); // PONTO E VÍRGULA E PARÊNTESE CORRIGIDOS
 
       if (fetchError) throw fetchError
       setTransactions(data || [])
@@ -35,34 +35,15 @@ export const useTransactions = () => {
     }
   }, [])
 
-  const createTransaction = useCallback(async (transactionData) => {
-    try {
-      const { data, error: createError } = await supabase
-        .from(TABLE_NAME)
-        .insert([transactionData])
-        .select()
-
-      if (createError) throw createError
-      if (data) setTransactions(prev => [data[0], ...prev])
-      return { success: true, data: data?.[0] }
-    } catch (err) {
-      console.error('ERRO SUPABASE CREATE:', err.message)
-      return { success: false, error: err.message }
-    }
-  }, [])
-
- const deleteTransaction = useCallback(async (id) => {
+  const deleteTransaction = useCallback(async (id) => {
     try {
       const { error: deleteError } = await supabase
         .from(TABLE_NAME)
         .delete()
-        .eq('id_pedido', id) // 1. Aqui você já mudou, está correto!
+        .eq('id_pedido', id);
 
       if (deleteError) throw deleteError
-
-      // 2. MUDANÇA AQUI: Ajustar de 't.id' para 't.id_pedido'
       setTransactions(prev => prev.filter(t => t.id_pedido !== id))
-      
       return { success: true }
     } catch (err) {
       console.error('ERRO SUPABASE DELETE:', err.message)
@@ -72,64 +53,14 @@ export const useTransactions = () => {
 
   const filteredTransactions = useMemo(() => {
     if (!Array.isArray(transactions)) return []
-    return transactions
-  }, [transactions])
+    return transactions.filter(t => {
+      const matchesCliente = !filters.cliente_info || 
+        t.cliente_info?.toLowerCase().includes(filters.cliente_info.toLowerCase());
+      const matchesFrete = !filters.frete || t.frete === filters.frete;
+      return matchesCliente && matchesFrete;
+    });
+  }, [transactions, filters])
 
   const summary = useMemo(() => {
-    const initial = { 
-      totalEntradas: 0, 
-      totalSaidas: 0, 
-      saldo: 0, 
-      quantidade: 0,
-      // Adicionais para garantir compatibilidade:
-      receita: 0,
-      faturado: 0
-    }
-    
-    if (!filteredTransactions || filteredTransactions.length === 0) return initial
-
-    return filteredTransactions.reduce((acc, t) => {
-      // Convertemos para número para evitar problemas com texto
-      const pago = Number(t.valor_pago) || 0
-      const total = Number(t.valor_total) || 0
-      const restante = Number(t.valor_restante) || 0
-
-      return {
-        ...acc,
-        totalEntradas: acc.totalEntradas + pago,
-        saldo: acc.saldo + pago,
-        receita: acc.receita + pago,
-        faturado: acc.faturado + total,
-        totalPendente: (acc.totalPendente || 0) + restante,
-        quantidade: acc.quantidade + 1
-      }
-    }, initial)
-  }, [filteredTransactions])
-
-  const transactionsByCategory = useMemo(() => {
-    const grouped = {}
-    filteredTransactions.forEach(t => {
-      const cat = t.frete || 'Geral' 
-      if (!grouped[cat]) grouped[cat] = { entrada: 0, saida: 0 }
-      grouped[cat]['entrada'] += (Number(t.valor_pago) || 0)
-    })
-    return grouped
-  }, [filteredTransactions])
-
-  useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
-
-  return {
-    transactions: filteredTransactions,
-    loading,
-    error,
-    filters,
-    setFilters,
-    summary,
-    transactionsByCategory,
-    fetchTransactions,
-    createTransaction,
-    deleteTransaction,
-  }
-}
+    const initial = { totalEntradas: 0, totalSaidas: 0, saldo: 0, quantidade: 0, faturado: 0 }
+    if (!filteredTransactions.length)
