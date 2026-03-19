@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 
-const TABLE_NAME = 'pedidos_mover'
-
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -12,7 +10,7 @@ export const useTransactions = () => {
     try {
       setLoading(true)
       const { data, error: fetchError } = await supabase
-        .from(TABLE_NAME)
+        .from('pedidos_mover')
         .select('*')
         .order('id_pedido', { ascending: false })
 
@@ -25,37 +23,25 @@ export const useTransactions = () => {
     }
   }
 
-  useEffect(() => {
-    fetchTransactions()
-  }, [])
+  useEffect(() => { fetchTransactions() }, [])
 
   const transactionsByMonth = useMemo(() => {
     const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     const dataMap = months.map(label => ({ label, entradas: 0, saidas: 0 }))
 
     transactions.forEach(t => {
-      // PROTEÇÃO TOTAL: Verifica se a data existe e se é uma string antes do split
+      // SEGURANÇA MÁXIMA: Só faz o split se data_entrega for uma string válida
       const dataStr = t?.data_entrega
-      if (dataStr && typeof dataStr === 'string' && dataStr.includes('.')) {
-        try {
-          const partes = dataStr.split('.')
-          const mesIndex = parseInt(partes[1], 10) - 1
-          if (mesIndex >= 0 && mesIndex < 12) {
-            dataMap[mesIndex].entradas += Number(t.valor_pago) || 0
-          }
-        } catch (e) {
-          console.error("Erro ao processar linha:", t)
+      if (typeof dataStr === 'string' && dataStr.includes('.')) {
+        const partes = dataStr.split('.')
+        const mesIndex = parseInt(partes[1], 10) - 1
+        if (mesIndex >= 0 && mesIndex < 12) {
+          dataMap[mesIndex].entradas += Number(t.valor_pago || 0)
         }
       }
     })
     return dataMap
   }, [transactions])
 
-  return {
-    transactions,
-    transactionsByMonth,
-    loading,
-    error,
-    refresh: fetchTransactions
-  }
+  return { transactions, transactionsByMonth, loading, error }
 }
