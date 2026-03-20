@@ -1,41 +1,52 @@
-import React, { useState } from 'react'
-import { Edit, Trash2, Plus, ArrowDownLeft, ArrowUpRight, Filter } from 'lucide-react'
-import { Table, Button, Modal, Input, Select } from '../ui'
+import React, { useState, useMemo } from 'react'
+import { Edit, Trash2, Plus, ArrowDownLeft, Filter } from 'lucide-react'
+import { Table, Button, Modal } from '../ui'
 import TransactionForm from './TransactionForm'
-import { formatCurrency, getTransactionTypeClass } from '../../lib/formatters'
-import { TRANSACTION_TYPES, TRANSACTION_CATEGORIES } from '../../lib/validations'
+import { formatCurrency } from '../../lib/formatters'
 
-const TransactionList = ({ 
-  transactions = [], // Valor padrão para evitar erro de .map
+const TransactionList = ({
+  transactions = [],
   clients = [],
-  loading, 
+  loading,
   filters,
   setFilters,
-  onCreate, 
-  onUpdate, 
-  onDelete 
+  onCreate,
+  onUpdate,
+  onDelete
 }) => {
+
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
 
-  // Opções de Cliente ajustadas para cliente_info
-  const clientOptions = [
-    { value: '', label: 'Todos os clientes' },
-    ...clients.map(client => ({ 
-      value: client.id_pedido, 
-      label: client.cliente_info || 'Sem nome' 
-    }))
-  ]
+  // ✅ BLINDAGEM TOTAL DOS DADOS
+  const safeTransactions = useMemo(() => {
+    if (!Array.isArray(transactions)) return []
+    return transactions.filter(Boolean)
+  }, [transactions])
 
-  // Configuração das Colunas da Tabela
+  const safeClients = useMemo(() => {
+    if (!Array.isArray(clients)) return []
+    return clients.filter(Boolean)
+  }, [clients])
+
+  // ✅ CLIENT OPTIONS SEGURO
+  const clientOptions = useMemo(() => [
+    { value: '', label: 'Todos os clientes' },
+    ...safeClients.map(client => ({
+      value: client?.id_pedido ?? '',
+      label: client?.cliente_info || 'Sem nome'
+    }))
+  ], [safeClients])
+
+  // ✅ COLUNAS SEGURAS
   const columns = [
     {
       key: 'data_entrega',
       header: 'Data',
-      render: (value) => value || '-', // Exibe a string "02.03" direto sem quebrar
+      render: (value) => value || '-',
     },
     {
       key: 'cliente_info',
@@ -46,7 +57,7 @@ const TransactionList = ({
       key: 'tipo',
       header: 'Tipo',
       render: () => (
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-sage-100 text-sage-700`}>
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-sage-100 text-sage-700">
           <ArrowDownLeft size={12} /> Entrada
         </span>
       ),
@@ -54,57 +65,72 @@ const TransactionList = ({
     {
       key: 'frete',
       header: 'Frete/Categoria',
-      render: (value) => <span className="uppercase text-xs font-semibold text-stone-500">{value || 'Geral'}</span>
+      render: (value) => (
+        <span className="uppercase text-xs font-semibold text-stone-500">
+          {value || 'Geral'}
+        </span>
+      )
     },
     {
       key: 'valor_pago',
       header: 'Valor Pago',
       render: (value) => (
         <span className="font-medium text-sage-700">
-          +{formatCurrency(value || 0)}
+          +{formatCurrency(value ?? 0)}
         </span>
       ),
     },
     {
       key: 'id_pedido',
       header: 'Ref.',
-      render: (value) => <span className="text-stone-400">#{value}</span>,
+      render: (value) => (
+        <span className="text-stone-400">
+          #{value ?? '-'}
+        </span>
+      ),
     },
     {
       key: 'actions',
       header: 'Ações',
       width: '100px',
-      render: (_, row) => (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleEdit(row)
-            }}
-            className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
-          >
-            <Edit size={16} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleDeleteClick(row)
-            }}
-            className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
-        </div>
-      ),
+      render: (_, row) => {
+        if (!row) return null
+
+        return (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleEdit(row)
+              }}
+              className="p-1.5 text-stone-500 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
+            >
+              <Edit size={16} />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDeleteClick(row)
+              }}
+              className="p-1.5 text-stone-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )
+      },
     },
   ]
 
   const handleEdit = (transaction) => {
+    if (!transaction) return
     setSelectedTransaction(transaction)
     setIsModalOpen(true)
   }
 
   const handleDeleteClick = (transaction) => {
+    if (!transaction) return
     setSelectedTransaction(transaction)
     setIsDeleteModalOpen(true)
   }
@@ -112,11 +138,12 @@ const TransactionList = ({
   const handleSubmit = async (formData) => {
     setSubmitting(true)
     try {
-      if (selectedTransaction) {
-        await onUpdate(selectedTransaction.id_pedido, formData)
+      if (selectedTransaction?.id_pedido) {
+        await onUpdate?.(selectedTransaction.id_pedido, formData)
       } else {
-        await onCreate(formData)
+        await onCreate?.(formData)
       }
+
       setIsModalOpen(false)
       setSelectedTransaction(null)
     } finally {
@@ -125,8 +152,10 @@ const TransactionList = ({
   }
 
   const handleDeleteConfirm = async () => {
-    if (!selectedTransaction) return
-    await onDelete(selectedTransaction.id_pedido)
+    if (!selectedTransaction?.id_pedido) return
+
+    await onDelete?.(selectedTransaction.id_pedido)
+
     setIsDeleteModalOpen(false)
     setSelectedTransaction(null)
   }
@@ -141,20 +170,28 @@ const TransactionList = ({
         >
           Filtros
         </Button>
-        <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+
+        <Button
+          variant="primary"
+          icon={Plus}
+          onClick={() => setIsModalOpen(true)}
+        >
           Nova Transação
         </Button>
       </div>
 
       <Table
         columns={columns}
-        data={transactions}
+        data={safeTransactions} // ✅ aqui é CRÍTICO
         loading={loading}
         emptyMessage="Nenhuma transação encontrada no banco de dados."
       />
 
-      {/* Modals mantidos com ajustes de ID */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Gerenciar Transação">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Gerenciar Transação"
+      >
         <TransactionForm
           transaction={selectedTransaction}
           onSubmit={handleSubmit}
@@ -163,12 +200,24 @@ const TransactionList = ({
         />
       </Modal>
 
-      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title="Confirmar Exclusão">
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Confirmar Exclusão"
+      >
         <div className="space-y-4">
-          <p className="text-stone-600">Deseja excluir o registro de <strong>{selectedTransaction?.cliente_info}</strong>?</p>
+          <p className="text-stone-600">
+            Deseja excluir o registro de{' '}
+            <strong>{selectedTransaction?.cliente_info || '-'}</strong>?
+          </p>
+
           <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
-            <Button variant="danger" onClick={handleDeleteConfirm}>Excluir</Button>
+            <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={handleDeleteConfirm}>
+              Excluir
+            </Button>
           </div>
         </div>
       </Modal>
