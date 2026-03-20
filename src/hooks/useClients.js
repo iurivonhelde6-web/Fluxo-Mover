@@ -6,15 +6,23 @@ export const useClients = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // Nome da sua tabela no Supabase
   const TABLE_NAME = 'pedidos_mover'
+
+  const normalizeClient = (item) => {
+    if (!item || typeof item !== 'object') return null
+
+    return {
+      id: item.id_pedido ?? null,
+      nome: item.cliente_info ?? 'Sem nome',
+      raw: item // mantém original se precisar
+    }
+  }
 
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      
-      // CORREÇÃO AQUI: Usando a variável TABLE_NAME em vez de pedidos_mover solto
+
       const { data, error: fetchError } = await supabase
         .from(TABLE_NAME)
         .select('*')
@@ -22,11 +30,19 @@ export const useClients = () => {
 
       if (fetchError) throw fetchError
 
-      setClients(data || [])
+      const safeData = Array.isArray(data)
+        ? data
+            .filter(Boolean)
+            .map(normalizeClient)
+            .filter(Boolean)
+        : []
+
+      setClients(safeData)
+
     } catch (err) {
       console.error('Erro ao buscar clientes:', err.message)
       setError(err.message)
-      setClients([]) // Limpa a lista se houver erro real
+      setClients([])
     } finally {
       setLoading(false)
     }
@@ -34,7 +50,6 @@ export const useClients = () => {
 
   const createClient = useCallback(async (clientData) => {
     try {
-      // CORREÇÃO AQUI TAMBÉM
       const { data, error: createError } = await supabase
         .from(TABLE_NAME)
         .insert([clientData])
@@ -42,10 +57,14 @@ export const useClients = () => {
 
       if (createError) throw createError
 
-      if (data) {
-        setClients(prev => [data[0], ...prev])
+      const newClient = normalizeClient(data?.[0])
+
+      if (newClient) {
+        setClients(prev => [newClient, ...prev])
       }
-      return { success: true, data: data?.[0] }
+
+      return { success: true, data: newClient }
+
     } catch (err) {
       console.error('Erro ao criar cliente:', err.message)
       return { success: false, error: err.message }
@@ -54,16 +73,17 @@ export const useClients = () => {
 
   const deleteClient = useCallback(async (id) => {
     try {
-      // E CORREÇÃO AQUI
       const { error: deleteError } = await supabase
         .from(TABLE_NAME)
         .delete()
-        .eq('id', id)
+        .eq('id_pedido', id) // ✅ corrigido
 
       if (deleteError) throw deleteError
 
       setClients(prev => prev.filter(c => c.id !== id))
+
       return { success: true }
+
     } catch (err) {
       console.error('Erro ao deletar cliente:', err.message)
       return { success: false, error: err.message }
