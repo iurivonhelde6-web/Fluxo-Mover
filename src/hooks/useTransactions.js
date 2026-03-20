@@ -20,6 +20,45 @@ export const useTransactions = () => {
   }
 }
 
+  const summary = useMemo(() => {
+  let receitas = 0
+  let despesas = 0
+
+  transactions.forEach(t => {
+    const valor = Number(t.valor_pago || 0)
+
+    // como seu sistema é só entrada (vendas), tudo é receita
+    receitas += valor
+  })
+
+  return {
+    receitas,
+    despesas,
+    saldo: receitas - despesas,
+  }
+}, [transactions])
+
+
+  const transactionsByCategory = useMemo(() => {
+  const result = {}
+
+  transactions.forEach(t => {
+    const categoria = t.frete || 'Outros'
+    const valor = Number(t.valor_pago || 0)
+
+    if (!result[categoria]) {
+      result[categoria] = {
+        entrada: 0,
+        saida: 0,
+      }
+    }
+
+    result[categoria].entrada += valor
+  })
+
+  return result
+}, [transactions])
+
   const fetchTransactions = async () => {
     try {
       setLoading(true)
@@ -76,9 +115,10 @@ export const useTransactions = () => {
   }, [transactions])
 
   return {
-    transactions,
-    transactionsByMonth,
-    loading,
-    error
-  }
+  transactions,
+  transactionsByMonth,
+  transactionsByCategory,
+  summary,
+  loading,
+  error,
 }
