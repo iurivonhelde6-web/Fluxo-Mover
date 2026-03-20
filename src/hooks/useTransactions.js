@@ -7,17 +7,18 @@ export const useTransactions = () => {
   const [error, setError] = useState(null)
 
   const normalizeTransaction = (t) => {
-    if (!t || typeof t !== 'object') return null
+  if (!t || typeof t !== 'object') return null
 
-    return {
-      id: t.id_pedido ?? null,
-      cliente: t.cliente_info ?? 'Sem nome',
-      data: typeof t.data_entrega === 'string' ? t.data_entrega : '',
-      valor: Number(t.valor_pago ?? 0),
-      frete: t.frete ?? 'Geral',
-      raw: t
-    }
+  return {
+    id_pedido: t.id_pedido ?? null,
+    cliente_info: t.cliente_info ?? 'Sem nome',
+    data_entrega: typeof t.data_entrega === 'string' ? t.data_entrega : '',
+    valor_pago: Number(t.valor_pago ?? 0),
+    valor_total: Number(t.valor_total ?? 0),
+    valor_restante: Number(t.valor_restante ?? 0),
+    frete: t.frete ?? 'Geral',
   }
+}
 
   const fetchTransactions = async () => {
     try {
