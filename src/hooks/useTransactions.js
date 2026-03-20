@@ -6,7 +6,7 @@ export const useTransactions = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  // NORMALIZAÇÃO (mantendo nomes do banco)
+  // NORMALIZAÇÃO
   const normalizeTransaction = (t) => {
     if (!t || typeof t !== 'object') return null
 
@@ -21,6 +21,7 @@ export const useTransactions = () => {
     }
   }
 
+  // 🔥 FETCH
   const fetchTransactions = async () => {
     try {
       setLoading(true)
@@ -49,23 +50,53 @@ export const useTransactions = () => {
     fetchTransactions()
   }, [])
 
-  // ✅ SUMMARY (CARDS)
- const summary = useMemo(() => {
-  let entradas = 0
-  let saidas = 0
+  // 🔥 CREATE (NOVO - ESSENCIAL)
+  const createTransaction = async (formData) => {
+    try {
+      const mappedData = {
+        cliente_info: formData.cliente, // 👈 agora vem do input
+        valor_pago: Number(formData.valor),
+        data_entrega: formData.data,
+        frete: formData.categoria || 'Geral',
+      }
 
-  transactions.forEach(t => {
-    entradas += Number(t.valor_pago || 0)
-  })
+      const { data, error } = await supabase
+        .from('pedidos_mover')
+        .insert([mappedData])
+        .select()
 
-  return {
-    entradas,
-    saidas,
-    saldo: entradas - saidas,
+      if (error) throw error
+
+      if (data) {
+        const newItems = data.map(normalizeTransaction).filter(Boolean)
+
+        setTransactions(prev => [...newItems, ...prev])
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error('Erro ao criar transação:', err)
+      return { success: false, error: err.message }
+    }
   }
-}, [transactions])
 
-  // ✅ POR CATEGORIA (USANDO FRETE)
+  // ✅ SUMMARY
+  const summary = useMemo(() => {
+    let entradas = 0
+    let saidas = 0
+
+    transactions.forEach(t => {
+      entradas += Number(t.valor_pago || 0)
+    })
+
+    return {
+      entradas,
+      saidas,
+      saldo: entradas - saidas,
+    }
+  }, [transactions])
+
+  // ✅ POR CATEGORIA
   const transactionsByCategory = useMemo(() => {
     const result = {}
 
@@ -111,5 +142,6 @@ export const useTransactions = () => {
     transactionsByMonth,
     loading,
     error,
+    createTransaction, // ✅ IMPORTANTE
   }
 }
