@@ -1,75 +1,53 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Input, Select, Button } from '../ui'
 import { TRANSACTION_TYPES, TRANSACTION_CATEGORIES } from '../../lib/validations'
 import { formatDateForInput } from '../../lib/formatters'
 
-const TransactionForm = ({
-  transaction,
-  clients = [], // ✅ proteção
-  onSubmit,
-  onCancel,
-  loading
+const TransactionForm = ({ 
+  transaction, 
+  onSubmit, 
+  onCancel, 
+  loading 
 }) => {
 
-  // ✅ função segura pra data atual
-  const getToday = () => {
-    return new Date().toISOString().split('T')[0]
-  }
-
   const [formData, setFormData] = useState({
-    cliente_id: '',
+    cliente: '',
     tipo: '',
     valor: '',
     categoria: '',
-    data: getToday(), // ✅ corrigido
+    data: formatDateForInput(new Date()),
     descricao: '',
   })
 
   const [errors, setErrors] = useState({})
 
-  // ✅ Populate form (SUPER seguro)
+  // Preencher ao editar
   useEffect(() => {
-    if (!transaction) return
-
-    setFormData({
-      cliente_id: transaction?.cliente_id ?? '',
-      tipo: transaction?.tipo ?? '',
-      valor: transaction?.valor ?? '',
-      categoria: transaction?.categoria ?? '',
-      data: typeof transaction?.data === 'string'
-        ? transaction.data.includes('T')
-          ? transaction.data.split('T')[0]
-          : transaction.data
-        : getToday(),
-      descricao: transaction?.descricao ?? '',
-    })
-
+    if (transaction) {
+      setFormData({
+        cliente: transaction.cliente_info || '',
+        tipo: transaction.tipo || 'entrada',
+        valor: transaction.valor_pago || '',
+        categoria: transaction.frete || '',
+        data: transaction.data_entrega || formatDateForInput(new Date()),
+        descricao: transaction.descricao || '',
+      })
+    }
   }, [transaction])
 
-  // ✅ CLIENT OPTIONS SEGURO
-  const clientOptions = useMemo(() => {
-    if (!Array.isArray(clients)) return []
-
-    return clients
-      .filter(Boolean)
-      .map(client => ({
-        value: client?.id ?? '',
-        label: client?.nome || 'Sem nome',
-      }))
-  }, [clients])
-
-  // Type options
+  // Opções de tipo
   const typeOptions = [
     { value: TRANSACTION_TYPES.ENTRADA, label: 'Entrada' },
     { value: TRANSACTION_TYPES.SAIDA, label: 'Saída' },
   ]
 
-  // Category options
-  const categoryOptions = (TRANSACTION_CATEGORIES || []).map(cat => ({
+  // Opções de categoria
+  const categoryOptions = TRANSACTION_CATEGORIES.map(cat => ({
     value: cat,
     label: cat,
   }))
 
+  // Inputs
   const handleChange = (e) => {
     const { name, value } = e.target
 
@@ -88,27 +66,40 @@ const TransactionForm = ({
     }
   }
 
+  // Validação
   const validate = () => {
     const newErrors = {}
 
-    if (!formData.cliente_id) newErrors.cliente_id = 'Cliente é obrigatório'
-    if (!formData.tipo) newErrors.tipo = 'Tipo é obrigatório'
+    if (!formData.cliente) {
+      newErrors.cliente = 'Cliente é obrigatório'
+    }
+
+    if (!formData.tipo) {
+      newErrors.tipo = 'Tipo é obrigatório'
+    }
 
     if (!formData.valor) {
       newErrors.valor = 'Valor é obrigatório'
-    } else if (isNaN(formData.valor) || parseFloat(formData.valor) <= 0) {
-      newErrors.valor = 'Valor inválido'
+    } else if (parseFloat(formData.valor) <= 0) {
+      newErrors.valor = 'Valor deve ser maior que zero'
     }
 
-    if (!formData.categoria) newErrors.categoria = 'Categoria obrigatória'
-    if (!formData.data) newErrors.data = 'Data obrigatória'
+    if (!formData.categoria) {
+      newErrors.categoria = 'Categoria é obrigatória'
+    }
+
+    if (!formData.data) {
+      newErrors.data = 'Data é obrigatória'
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
+  // Submit
   const handleSubmit = (e) => {
     e.preventDefault()
+
     if (!validate()) return
 
     const cleanData = {
@@ -116,25 +107,24 @@ const TransactionForm = ({
       valor: parseFloat(formData.valor),
     }
 
-    onSubmit?.(cleanData)
+    onSubmit(cleanData)
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
 
-      <Select
+      {/* ✅ CLIENTE (AGORA INPUT LIVRE) */}
+      <Input
         label="Cliente"
-        name="cliente_id"
-        value={formData.cliente_id}
-        onChange={(e) => handleSelectChange('cliente_id', e.target.value)}
-        options={clientOptions}
-        error={errors.cliente_id}
-        placeholder="Selecione um cliente"
+        name="cliente"
+        value={formData.cliente}
+        onChange={handleChange}
+        error={errors.cliente}
+        placeholder="Digite o nome do cliente"
         required
       />
 
       <div className="grid grid-cols-2 gap-4">
-
         <Select
           label="Tipo"
           name="tipo"
@@ -142,6 +132,7 @@ const TransactionForm = ({
           onChange={(e) => handleSelectChange('tipo', e.target.value)}
           options={typeOptions}
           error={errors.tipo}
+          placeholder="Entrada/Saída"
           required
         />
 
@@ -154,13 +145,12 @@ const TransactionForm = ({
           value={formData.valor}
           onChange={handleChange}
           error={errors.valor}
+          placeholder="0,00"
           required
         />
-
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-
         <Select
           label="Categoria"
           name="categoria"
@@ -168,6 +158,7 @@ const TransactionForm = ({
           onChange={(e) => handleSelectChange('categoria', e.target.value)}
           options={categoryOptions}
           error={errors.categoria}
+          placeholder="Selecione uma categoria"
           required
         />
 
@@ -180,7 +171,6 @@ const TransactionForm = ({
           error={errors.data}
           required
         />
-
       </div>
 
       <Input
@@ -189,11 +179,15 @@ const TransactionForm = ({
         value={formData.descricao}
         onChange={handleChange}
         error={errors.descricao}
+        placeholder="Descrição opcional"
       />
 
       <div className="flex justify-end gap-3 pt-4 border-t border-stone-200">
-
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+        >
           Cancelar
         </Button>
 
@@ -204,7 +198,6 @@ const TransactionForm = ({
         >
           {transaction ? 'Salvar Alterações' : 'Registrar Transação'}
         </Button>
-
       </div>
     </form>
   )
