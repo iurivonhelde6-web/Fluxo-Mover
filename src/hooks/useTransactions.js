@@ -50,20 +50,20 @@ export const useTransactions = () => {
   }, [])
 
   // ✅ SUMMARY (CARDS)
-  const summary = useMemo(() => {
-    let receitas = 0
-    let despesas = 0
+ const summary = useMemo(() => {
+  let entradas = 0
+  let saidas = 0
 
-    transactions.forEach(t => {
-      receitas += Number(t.valor_pago || 0)
-    })
+  transactions.forEach(t => {
+    entradas += Number(t.valor_pago || 0)
+  })
 
-    return {
-      receitas,
-      despesas,
-      saldo: receitas - despesas,
-    }
-  }, [transactions])
+  return {
+    entradas,
+    saidas,
+    saldo: entradas - saidas,
+  }
+}, [transactions])
 
   // ✅ POR CATEGORIA (USANDO FRETE)
   const transactionsByCategory = useMemo(() => {
