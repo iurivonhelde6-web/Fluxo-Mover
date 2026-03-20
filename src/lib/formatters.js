@@ -10,29 +10,21 @@ export const formatCurrency = (value) => {
 };
 
 export const formatDate = (date) => {
+  // Se a data não existir ou não for texto, retorna um traço e NÃO QUEBRA O APP
   if (!date || typeof date !== 'string') return '-';
   try {
-    if (date.includes('T')) {
-      const dataApenas = date.split('T')[0];
-      return dataApenas.split('-').reverse().join('/');
-    }
-    if (date.includes('-')) {
-      return date.split('-').reverse().join('/');
-    }
+    if (date.includes('T')) return date.split('T')[0].split('-').reverse().join('/');
+    if (date.includes('-')) return date.split('-').reverse().join('/');
     return date; 
   } catch (error) {
     return '-';
   }
 };
 
-// ESSA FUNÇÃO É NECESSÁRIA PARA O TRANSACTION FORM
 export const formatDateForInput = (date) => {
-  if (!date) return '';
+  if (!date || typeof date !== 'string') return '';
   try {
-    if (typeof date === 'string' && date.includes('T')) {
-      return date.split('T')[0];
-    }
-    return date;
+    return date.includes('T') ? date.split('T')[0] : date;
   } catch (error) {
     return '';
   }
@@ -44,13 +36,10 @@ export const formatTransactionType = (type) => {
 };
 
 export const getTransactionTypeClass = (type) => {
-  const tipoSeguro = type ? type.toLowerCase() : 'entrada';
-  return tipoSeguro === 'saida' || tipoSeguro === 'saída'
-    ? 'bg-red-100 text-red-700'
-    : 'bg-sage-100 text-sage-700';
+  const t = String(type || 'entrada').toLowerCase();
+  return t === 'saida' || t === 'saída' ? 'bg-red-100 text-red-700' : 'bg-sage-100 text-sage-700';
 };
 
-// ESSA FUNÇÃO É NECESSÁRIA PARA O DASHBOARD (CHARTS)
 export const getMonthName = (monthIndex) => {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   return months[monthIndex] || '';
