@@ -1,68 +1,29 @@
 import { useState, useEffect, useMemo } from 'react'
-import supabase from '../lib/supabase' // ✅ padronizado
+import supabase from '../lib/supabase'
 
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // NORMALIZAÇÃO (mantendo nomes do banco)
   const normalizeTransaction = (t) => {
-  if (!t || typeof t !== 'object') return null
+    if (!t || typeof t !== 'object') return null
 
-  return {
-    id_pedido: t.id_pedido ?? null,
-    cliente_info: t.cliente_info ?? 'Sem nome',
-    data_entrega: typeof t.data_entrega === 'string' ? t.data_entrega : '',
-    valor_pago: Number(t.valor_pago ?? 0),
-    valor_total: Number(t.valor_total ?? 0),
-    valor_restante: Number(t.valor_restante ?? 0),
-    frete: t.frete ?? 'Geral',
-  }
-}
-
-  const summary = useMemo(() => {
-  let receitas = 0
-  let despesas = 0
-
-  transactions.forEach(t => {
-    const valor = Number(t.valor_pago || 0)
-
-    // como seu sistema é só entrada (vendas), tudo é receita
-    receitas += valor
-  })
-
-  return {
-    receitas,
-    despesas,
-    saldo: receitas - despesas,
-  }
-}, [transactions])
-
-
-  const transactionsByCategory = useMemo(() => {
-  const result = {}
-
-  transactions.forEach(t => {
-    const categoria = t.frete || 'Outros'
-    const valor = Number(t.valor_pago || 0)
-
-    if (!result[categoria]) {
-      result[categoria] = {
-        entrada: 0,
-        saida: 0,
-      }
+    return {
+      id_pedido: t.id_pedido ?? null,
+      cliente_info: t.cliente_info ?? 'Sem nome',
+      data_entrega: typeof t.data_entrega === 'string' ? t.data_entrega : '',
+      valor_pago: Number(t.valor_pago ?? 0),
+      valor_total: Number(t.valor_total ?? 0),
+      valor_restante: Number(t.valor_restante ?? 0),
+      frete: t.frete ?? 'Geral',
     }
-
-    result[categoria].entrada += valor
-  })
-
-  return result
-}, [transactions])
+  }
 
   const fetchTransactions = async () => {
     try {
       setLoading(true)
-      setError(null)
 
       const { data, error: fetchError } = await supabase
         .from('pedidos_mover')
@@ -72,17 +33,13 @@ export const useTransactions = () => {
       if (fetchError) throw fetchError
 
       const safeData = Array.isArray(data)
-        ? data
-            .filter(Boolean)
-            .map(normalizeTransaction)
-            .filter(Boolean)
+        ? data.map(normalizeTransaction).filter(Boolean)
         : []
 
       setTransactions(safeData)
-
     } catch (err) {
+      console.error(err)
       setError(err.message)
-      setTransactions([]) // ✅ evita lixo
     } finally {
       setLoading(false)
     }
@@ -92,21 +49,54 @@ export const useTransactions = () => {
     fetchTransactions()
   }, [])
 
-  const transactionsByMonth = useMemo(() => {
-    const dataMap = [
-      'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-      'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-    ].map(label => ({ label, entradas: 0, saidas: 0 }))
+  // ✅ SUMMARY (CARDS)
+  const summary = useMemo(() => {
+    let receitas = 0
+    let despesas = 0
 
     transactions.forEach(t => {
-      const dataStr = t?.data
+      receitas += Number(t.valor_pago || 0)
+    })
 
-      if (typeof dataStr === 'string' && dataStr.includes('.')) {
+    return {
+      receitas,
+      despesas,
+      saldo: receitas - despesas,
+    }
+  }, [transactions])
+
+  // ✅ POR CATEGORIA (USANDO FRETE)
+  const transactionsByCategory = useMemo(() => {
+    const result = {}
+
+    transactions.forEach(t => {
+      const categoria = t.frete || 'Outros'
+      const valor = Number(t.valor_pago || 0)
+
+      if (!result[categoria]) {
+        result[categoria] = { entrada: 0, saida: 0 }
+      }
+
+      result[categoria].entrada += valor
+    })
+
+    return result
+  }, [transactions])
+
+  // ✅ POR MÊS
+  const transactionsByMonth = useMemo(() => {
+    const dataMap = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+      .map(label => ({ label, entrada: 0, saida: 0 }))
+
+    transactions.forEach(t => {
+      const dataStr = t.data_entrega
+
+      if (dataStr && typeof dataStr === 'string' && dataStr.includes('.')) {
         const partes = dataStr.split('.')
         const mesIndex = parseInt(partes[1], 10) - 1
 
         if (mesIndex >= 0 && mesIndex < 12) {
-          dataMap[mesIndex].entradas += Number(t.valor || 0)
+          dataMap[mesIndex].entrada += Number(t.valor_pago || 0)
         }
       }
     })
@@ -115,10 +105,11 @@ export const useTransactions = () => {
   }, [transactions])
 
   return {
-  transactions,
-  transactionsByMonth,
-  transactionsByCategory,
-  summary,
-  loading,
-  error,
+    transactions,
+    summary,
+    transactionsByCategory,
+    transactionsByMonth,
+    loading,
+    error,
+  }
 }
