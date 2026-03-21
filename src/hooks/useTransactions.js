@@ -54,13 +54,14 @@ export const useTransactions = () => {
       const { data, error } = await supabase
         .from('pedidos_mover')
         .insert([
-          {
-            cliente_info: formData.cliente,
-            valor_pago: Number(formData.valor),
-            data_entrega: formData.data,
-            frete: formData.categoria || 'Geral',
-          }
-        ])
+  {
+    cliente_info: formData.cliente,
+    valor_pago: Number(formData.valor),
+    data_entrega: formData.data,
+    frete: formData.categoria || 'Geral',
+    tipo: formData.tipo || 'entrada', // ✅ NOVO
+  }
+])
         .select()
 
       if (error) throw error
