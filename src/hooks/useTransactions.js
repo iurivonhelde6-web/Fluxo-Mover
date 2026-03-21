@@ -192,5 +192,6 @@ const normalizeTransaction = (t) => {
   loading,
   error,
   createTransaction,
+  updateTransaction, // ✅
   deleteTransaction, // ✅
 }
