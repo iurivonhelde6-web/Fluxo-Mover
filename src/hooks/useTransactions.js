@@ -22,7 +22,7 @@ export const useTransactions = () => {
     }
   }
 
-  // 🔥 FETCH (ESTAVA FALTANDO)
+  // ✅ FETCH
   const fetchTransactions = async () => {
     try {
       setLoading(true)
@@ -80,7 +80,7 @@ export const useTransactions = () => {
 
       return { success: true }
     } catch (err) {
-      console.error('Erro ao criar transação:', err)
+      console.error('Erro ao criar:', err)
       return { success: false, error: err.message }
     }
   }
@@ -88,12 +88,15 @@ export const useTransactions = () => {
   // ✅ UPDATE
   const updateTransaction = async (id, formData) => {
     try {
+      const isEntrada = formData.tipo === 'entrada'
+
       const { error } = await supabase
         .from('pedidos_mover')
         .update({
           cliente_info: formData.cliente,
-          valor_pago: Number(formData.valor),
+          valor_pago: isEntrada ? Number(formData.valor) : 0,
           valor_total: Number(formData.valor),
+          valor_restante: isEntrada ? 0 : Number(formData.valor),
           data_entrega: formData.data,
           frete: formData.categoria,
           tipo: formData.tipo,
