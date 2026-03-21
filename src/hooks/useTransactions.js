@@ -21,7 +21,7 @@ export const useTransactions = () => {
     }
   }
 
-  // 🔥 FETCH
+  // FETCH
   const fetchTransactions = async () => {
     try {
       setLoading(true)
@@ -50,11 +50,11 @@ export const useTransactions = () => {
     fetchTransactions()
   }, [])
 
-  // 🔥 CREATE (NOVO - ESSENCIAL)
+  // ✅ CREATE
   const createTransaction = async (formData) => {
     try {
       const mappedData = {
-        cliente_info: formData.cliente, // 👈 agora vem do input
+        cliente_info: formData.cliente,
         valor_pago: Number(formData.valor),
         data_entrega: formData.data,
         frete: formData.categoria || 'Geral',
@@ -69,7 +69,6 @@ export const useTransactions = () => {
 
       if (data) {
         const newItems = data.map(normalizeTransaction).filter(Boolean)
-
         setTransactions(prev => [...newItems, ...prev])
       }
 
@@ -80,7 +79,59 @@ export const useTransactions = () => {
     }
   }
 
-  // ✅ SUMMARY
+  // ✅ DELETE (🔥 FALTAVA ISSO)
+  const deleteTransaction = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('pedidos_mover')
+        .delete()
+        .eq('id_pedido', id)
+
+      if (error) throw error
+
+      setTransactions(prev => prev.filter(t => t.id_pedido !== id))
+
+      return { success: true }
+    } catch (err) {
+      console.error('Erro ao deletar:', err.message)
+      return { success: false, error: err.message }
+    }
+  }
+
+  // ✅ UPDATE (opcional mas importante)
+  const updateTransaction = async (id, formData) => {
+    try {
+      const mappedData = {
+        cliente_info: formData.cliente,
+        valor_pago: Number(formData.valor),
+        data_entrega: formData.data,
+        frete: formData.categoria || 'Geral',
+      }
+
+      const { data, error } = await supabase
+        .from('pedidos_mover')
+        .update(mappedData)
+        .eq('id_pedido', id)
+        .select()
+
+      if (error) throw error
+
+      if (data) {
+        const updated = normalizeTransaction(data[0])
+
+        setTransactions(prev =>
+          prev.map(t => (t.id_pedido === id ? updated : t))
+        )
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error('Erro ao atualizar:', err.message)
+      return { success: false, error: err.message }
+    }
+  }
+
+  // SUMMARY
   const summary = useMemo(() => {
     let entradas = 0
     let saidas = 0
@@ -96,7 +147,7 @@ export const useTransactions = () => {
     }
   }, [transactions])
 
-  // ✅ POR CATEGORIA
+  // POR CATEGORIA
   const transactionsByCategory = useMemo(() => {
     const result = {}
 
@@ -114,7 +165,7 @@ export const useTransactions = () => {
     return result
   }, [transactions])
 
-  // ✅ POR MÊS
+  // POR MÊS
   const transactionsByMonth = useMemo(() => {
     const dataMap = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
       .map(label => ({ label, entrada: 0, saida: 0 }))
@@ -142,6 +193,8 @@ export const useTransactions = () => {
     transactionsByMonth,
     loading,
     error,
-    createTransaction, // ✅ IMPORTANTE
+    createTransaction,
+    deleteTransaction,   // ✅ AGORA EXISTE
+    updateTransaction,   // ✅ AGORA EXISTE
   }
 }
