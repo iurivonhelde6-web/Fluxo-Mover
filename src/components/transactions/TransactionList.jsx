@@ -58,10 +58,20 @@ const TransactionList = ({
       header: 'Tipo',
       render: () => (
         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-sage-100 text-sage-700">
-          <ArrowDownLeft size={12} /> Entrada
-        </span>
-      ),
-    },
+        render: (_, row) => {
+  const isEntrada = row.tipo === 'entrada'
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+      isEntrada 
+        ? 'bg-sage-100 text-sage-700' 
+        : 'bg-red-100 text-red-700'
+    }`}>
+      {isEntrada ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
+      {isEntrada ? 'Entrada' : 'Saída'}
+    </span>
+  )
+},
     {
       key: 'frete',
       header: 'Frete/Categoria',
