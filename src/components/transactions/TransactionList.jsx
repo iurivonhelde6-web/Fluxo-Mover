@@ -34,10 +34,12 @@ const TransactionList = ({
 
   // ✅ CLIENT OPTIONS SEGURO
   const clientOptions = useMemo(() => [
-    { value: '', label: 'Todos os clientes' },
-    ...safeClients.map(client => ({
-      value: client?.id_pedido ?? '',
-      label: client?.cliente_info || 'Sem nome'
+  { value: '', label: 'Todos os clientes' },
+  ...safeClients.map(client => ({
+    value: client?.id ?? '', // ✅ CORRETO
+    label: client?.cliente_info || 'Sem nome'
+  }))
+], [safeClients])
     }))
   ], [safeClients])
 
@@ -138,8 +140,8 @@ const TransactionList = ({
   const handleSubmit = async (formData) => {
     setSubmitting(true)
     try {
-      if (selectedTransaction?.id_pedido) {
-        await onUpdate?.(selectedTransaction.id_pedido, formData)
+      if (selectedTransaction?.id) {
+        await onUpdate?.(selectedTransaction.id, formData)
       } else {
         await onCreate?.(formData)
       }
@@ -152,9 +154,9 @@ const TransactionList = ({
   }
 
   const handleDeleteConfirm = async () => {
-    if (!selectedTransaction?.id_pedido) return
+    if (!selectedTransaction?.id) return
 
-    await onDelete?.(selectedTransaction.id_pedido)
+    await onDelete?.(selectedTransaction.id)
 
     setIsDeleteModalOpen(false)
     setSelectedTransaction(null)
