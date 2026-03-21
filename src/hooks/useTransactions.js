@@ -6,20 +6,26 @@ export const useTransactions = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // ✅ NORMALIZAÇÃO
   const normalizeTransaction = (t) => {
-  if (!t || typeof t !== 'object') return null
+    if (!t || typeof t !== 'object') return null
 
-  return {
-    id: t.id,
-    cliente_info: t.cliente_info ?? 'Sem nome',
-    data_entrega: t.data_entrega || '',
-    valor_pago: Number(t.valor_pago ?? 0),
-    valor_total: Number(t.valor_total ?? 0),
-    valor_restante: Number(t.valor_restante ?? 0),
-    frete: t.frete ?? 'Geral',
-    tipo: t.tipo ?? 'entrada', // 🔥 ESSENCIAL
+    return {
+      id: t.id,
+      cliente_info: t.cliente_info ?? 'Sem nome',
+      data_entrega: t.data_entrega || '',
+      valor_pago: Number(t.valor_pago ?? 0),
+      valor_total: Number(t.valor_total ?? 0),
+      valor_restante: Number(t.valor_restante ?? 0),
+      frete: t.frete ?? 'Geral',
+      tipo: t.tipo ?? 'entrada',
+    }
   }
-}
+
+  // 🔥 FETCH (ESTAVA FALTANDO)
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true)
 
       const { data, error } = await supabase
         .from('pedidos_mover')
@@ -39,44 +45,45 @@ export const useTransactions = () => {
     } finally {
       setLoading(false)
     }
+  }
 
   useEffect(() => {
     fetchTransactions()
   }, [])
 
   // ✅ CREATE
- const createTransaction = async (formData) => {
-  try {
-    const isEntrada = formData.tipo === 'entrada'
+  const createTransaction = async (formData) => {
+    try {
+      const isEntrada = formData.tipo === 'entrada'
 
-    const mappedData = {
-      cliente_info: formData.cliente,
-      valor_pago: isEntrada ? Number(formData.valor) : 0,
-      valor_total: Number(formData.valor),
-      valor_restante: isEntrada ? 0 : Number(formData.valor),
-      data_entrega: formData.data,
-      frete: formData.categoria || 'Geral',
-      tipo: formData.tipo, // 🔥 ESSENCIAL
+      const mappedData = {
+        cliente_info: formData.cliente,
+        valor_pago: isEntrada ? Number(formData.valor) : 0,
+        valor_total: Number(formData.valor),
+        valor_restante: isEntrada ? 0 : Number(formData.valor),
+        data_entrega: formData.data,
+        frete: formData.categoria || 'Geral',
+        tipo: formData.tipo,
+      }
+
+      const { data, error } = await supabase
+        .from('pedidos_mover')
+        .insert([mappedData])
+        .select()
+
+      if (error) throw error
+
+      if (data) {
+        const newItems = data.map(normalizeTransaction).filter(Boolean)
+        setTransactions(prev => [...newItems, ...prev])
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error('Erro ao criar transação:', err)
+      return { success: false, error: err.message }
     }
-
-    const { data, error } = await supabase
-      .from('pedidos_mover')
-      .insert([mappedData])
-      .select()
-
-    if (error) throw error
-
-    if (data) {
-      const newItems = data.map(normalizeTransaction).filter(Boolean)
-      setTransactions(prev => [...newItems, ...prev])
-    }
-
-    return { success: true }
-  } catch (err) {
-    console.error('Erro ao criar transação:', err)
-    return { success: false, error: err.message }
   }
-}
 
   // ✅ UPDATE
   const updateTransaction = async (id, formData) => {
@@ -86,8 +93,10 @@ export const useTransactions = () => {
         .update({
           cliente_info: formData.cliente,
           valor_pago: Number(formData.valor),
+          valor_total: Number(formData.valor),
           data_entrega: formData.data,
           frete: formData.categoria,
+          tipo: formData.tipo,
         })
         .eq('id', id)
 
@@ -117,23 +126,23 @@ export const useTransactions = () => {
 
   // ✅ SUMMARY
   const summary = useMemo(() => {
-  let entradas = 0
-  let saidas = 0
+    let entradas = 0
+    let saidas = 0
 
-  transactions.forEach(t => {
-    if (t.tipo === 'entrada') {
-      entradas += Number(t.valor_total || 0)
-    } else {
-      saidas += Number(t.valor_total || 0)
+    transactions.forEach(t => {
+      if (t.tipo === 'entrada') {
+        entradas += Number(t.valor_total || 0)
+      } else {
+        saidas += Number(t.valor_total || 0)
+      }
+    })
+
+    return {
+      totalEntradas: entradas,
+      totalSaidas: saidas,
+      saldo: entradas - saidas,
     }
-  })
-
-  return {
-    totalEntradas: entradas,
-    totalSaidas: saidas,
-    saldo: entradas - saidas,
-  }
-}, [transactions])
+  }, [transactions])
 
   return {
     transactions,
