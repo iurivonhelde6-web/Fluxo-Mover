@@ -123,9 +123,9 @@ export const useTransactions = () => {
 
   transactions.forEach(t => {
     if (t.tipo === 'entrada') {
-      entradas += t.valor_pago
+      entradas += Number(t.valor_total || 0)
     } else {
-      saidas += t.valor_pago
+      saidas += Number(t.valor_total || 0)
     }
   })
 
