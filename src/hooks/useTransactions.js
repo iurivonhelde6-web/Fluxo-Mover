@@ -81,23 +81,20 @@ const normalizeTransaction = (t) => {
   }
 
   // ✅ DELETE (🔥 FALTAVA ISSO)
-  const deleteTransaction = async (id) => {
-    try {
-      const { error } = await supabase
-        .from('pedidos_mover')
-        .delete()
-        .eq('id', id)
+ const deleteTransaction = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('pedidos_mover')
+      .delete()
+      .eq('id', id)
 
-      if (error) throw error
+    if (error) throw error
 
-      setTransactions(prev => prev.filter(t => t.id_pedido !== id))
-
-      return { success: true }
-    } catch (err) {
-      console.error('Erro ao deletar:', err.message)
-      return { success: false, error: err.message }
-    }
+    setTransactions(prev => prev.filter(t => t.id !== id))
+  } catch (err) {
+    console.error('Erro ao deletar:', err)
   }
+}
 
   // ✅ UPDATE (opcional mas importante)
   const updateTransaction = async (id, formData) => {
@@ -187,15 +184,13 @@ const normalizeTransaction = (t) => {
     return dataMap
   }, [transactions])
 
-  return {
-    transactions,
-    summary,
-    transactionsByCategory,
-    transactionsByMonth,
-    loading,
-    error,
-    createTransaction,
-    deleteTransaction,   // ✅ AGORA EXISTE
-    updateTransaction,   // ✅ AGORA EXISTE
-  }
+ return {
+  transactions,
+  summary,
+  transactionsByCategory,
+  transactionsByMonth,
+  loading,
+  error,
+  createTransaction,
+  deleteTransaction, // ✅
 }
