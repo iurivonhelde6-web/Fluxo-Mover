@@ -49,30 +49,38 @@ export const useTransactions = () => {
   }, [])
 
   // ✅ CREATE
-  const createTransaction = async (formData) => {
-    try {
-      const { data, error } = await supabase
-        .from('pedidos_mover')
-        .insert([
-  {
-    cliente_info: formData.cliente,
-    valor_pago: Number(formData.valor),
-    data_entrega: formData.data,
-    frete: formData.categoria || 'Geral',
-    tipo: formData.tipo || 'entrada', // ✅ NOVO
-  }
-])
-        .select()
+ const createTransaction = async (formData) => {
+  try {
+    const isEntrada = formData.tipo === 'entrada'
 
-      if (error) throw error
-
-      const newItems = data.map(normalizeTransaction)
-      setTransactions(prev => [...newItems, ...prev])
-
-    } catch (err) {
-      console.error('Erro ao criar:', err)
+    const mappedData = {
+      cliente_info: formData.cliente,
+      valor_pago: isEntrada ? Number(formData.valor) : 0,
+      valor_total: Number(formData.valor),
+      valor_restante: isEntrada ? 0 : Number(formData.valor),
+      data_entrega: formData.data,
+      frete: formData.categoria || 'Geral',
+      tipo: formData.tipo, // 🔥 ESSENCIAL
     }
+
+    const { data, error } = await supabase
+      .from('pedidos_mover')
+      .insert([mappedData])
+      .select()
+
+    if (error) throw error
+
+    if (data) {
+      const newItems = data.map(normalizeTransaction).filter(Boolean)
+      setTransactions(prev => [...newItems, ...prev])
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error('Erro ao criar transação:', err)
+    return { success: false, error: err.message }
   }
+}
 
   // ✅ UPDATE
   const updateTransaction = async (id, formData) => {
