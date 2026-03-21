@@ -127,14 +127,14 @@ export const useTransactions = () => {
     }
   }
 
-  // ✅ SUMMARY
+  // ✅ SUMMARY (CORRIGIDO)
   const summary = useMemo(() => {
     let entradas = 0
     let saidas = 0
 
     transactions.forEach(t => {
       if (t.tipo === 'entrada') {
-        entradas += Number(t.valor_total || 0)
+        entradas += Number(t.valor_pago || 0) // ✅ CORRETO
       } else {
         saidas += Number(t.valor_total || 0)
       }
@@ -147,9 +147,59 @@ export const useTransactions = () => {
     }
   }, [transactions])
 
+  // ✅ GRÁFICO POR CATEGORIA (VOLTOU)
+  const transactionsByCategory = useMemo(() => {
+    const result = {}
+
+    transactions.forEach(t => {
+      const categoria = t.frete || 'Outros'
+      const valor = t.tipo === 'entrada'
+        ? Number(t.valor_pago || 0)
+        : Number(t.valor_total || 0)
+
+      if (!result[categoria]) {
+        result[categoria] = { entrada: 0, saida: 0 }
+      }
+
+      if (t.tipo === 'entrada') {
+        result[categoria].entrada += valor
+      } else {
+        result[categoria].saida += valor
+      }
+    })
+
+    return result
+  }, [transactions])
+
+  // ✅ GRÁFICO POR MÊS (VOLTOU)
+  const transactionsByMonth = useMemo(() => {
+    const meses = Array.from({ length: 12 }, (_, i) => ({
+      label: i + 1,
+      entrada: 0,
+      saida: 0,
+    }))
+
+    transactions.forEach(t => {
+      if (!t.data_entrega) return
+
+      const date = new Date(t.data_entrega)
+      const mes = date.getMonth()
+
+      if (t.tipo === 'entrada') {
+        meses[mes].entrada += Number(t.valor_pago || 0)
+      } else {
+        meses[mes].saida += Number(t.valor_total || 0)
+      }
+    })
+
+    return meses
+  }, [transactions])
+
   return {
     transactions,
     summary,
+    transactionsByCategory,
+    transactionsByMonth,
     loading,
     error,
     createTransaction,
