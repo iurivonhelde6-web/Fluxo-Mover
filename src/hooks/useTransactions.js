@@ -85,7 +85,7 @@ export const useTransactions = () => {
       const { error } = await supabase
         .from('pedidos_mover')
         .delete()
-        .eq('id_pedido', id)
+        .eq('id', id)
 
       if (error) throw error
 
@@ -111,7 +111,7 @@ export const useTransactions = () => {
       const { data, error } = await supabase
         .from('pedidos_mover')
         .update(mappedData)
-        .eq('id_pedido', id)
+        .eq('id', id)
         .select()
 
       if (error) throw error
