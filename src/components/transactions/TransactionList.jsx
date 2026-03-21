@@ -40,8 +40,6 @@ const TransactionList = ({
     label: client?.cliente_info || 'Sem nome'
   }))
 ], [safeClients])
-    }))
-  ], [safeClients])
 
   // ✅ COLUNAS SEGURAS
   const columns = [
