@@ -7,22 +7,19 @@ export const useTransactions = () => {
   const [error, setError] = useState(null)
 
   const normalizeTransaction = (t) => {
-    if (!t || typeof t !== 'object') return null
+  if (!t || typeof t !== 'object') return null
 
-    return {
-  id: t.id,
-  cliente_info: t.cliente_info ?? 'Sem nome',
-  data_entrega: t.data_entrega ?? '',
-  valor_pago: Number(t.valor_pago ?? 0),
-  valor_total: Number(t.valor_total ?? 0),
-  valor_restante: Number(t.valor_restante ?? 0),
-  frete: t.frete ?? 'Geral',
-  tipo: t.tipo ?? 'entrada', // ✅ NOVO
+  return {
+    id: t.id,
+    cliente_info: t.cliente_info ?? 'Sem nome',
+    data_entrega: t.data_entrega || '',
+    valor_pago: Number(t.valor_pago ?? 0),
+    valor_total: Number(t.valor_total ?? 0),
+    valor_restante: Number(t.valor_restante ?? 0),
+    frete: t.frete ?? 'Geral',
+    tipo: t.tipo ?? 'entrada', // 🔥 ESSENCIAL
+  }
 }
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true)
 
       const { data, error } = await supabase
         .from('pedidos_mover')
