@@ -113,18 +113,23 @@ export const useTransactions = () => {
 
   // ✅ SUMMARY
   const summary = useMemo(() => {
-    let entradas = 0
+  let entradas = 0
+  let saidas = 0
 
-    transactions.forEach(t => {
+  transactions.forEach(t => {
+    if (t.tipo === 'entrada') {
       entradas += t.valor_pago
-    })
-
-    return {
-      totalEntradas: entradas,
-      totalSaidas: 0,
-      saldo: entradas,
+    } else {
+      saidas += t.valor_pago
     }
-  }, [transactions])
+  })
+
+  return {
+    totalEntradas: entradas,
+    totalSaidas: saidas,
+    saldo: entradas - saidas,
+  }
+}, [transactions])
 
   return {
     transactions,
