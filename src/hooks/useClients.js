@@ -71,24 +71,24 @@ export const useClients = () => {
     }
   }, [])
 
-  const deleteClient = useCallback(async (id) => {
-    try {
-      const { error: deleteError } = await supabase
-        .from(TABLE_NAME)
-        .delete()
-        .eq('id_pedido', id) // ✅ corrigido
+ const deleteClient = useCallback(async (clienteNome) => {
+  try {
+    const { error } = await supabase
+      .from('pedidos_mover')
+      .delete()
+      .eq('cliente_info', clienteNome)
 
-      if (deleteError) throw deleteError
+    if (error) throw error
 
-      setClients(prev => prev.filter(c => c.id !== id))
+    // Atualiza lista local
+    setClients(prev => prev.filter(c => c.cliente_info !== clienteNome))
 
-      return { success: true }
-
-    } catch (err) {
-      console.error('Erro ao deletar cliente:', err.message)
-      return { success: false, error: err.message }
-    }
-  }, [])
+    return { success: true }
+  } catch (err) {
+    console.error('Erro ao deletar cliente:', err.message)
+    return { success: false, error: err.message }
+  }
+}, [])
 
   useEffect(() => {
     fetchClients()
