@@ -9,21 +9,16 @@ const SummaryCards = ({ summary }) => {
         trend={12.5}
       />
 
-      <SummaryCard
-        title="Total de Entradas"
-        value={summary?.totalEntradas}
-        icon={ArrowDownLeft}
-        color="sage"
-        trend={8.2}
-      />
+    <SummaryCard
+  title="Total de Entradas"
+  value={summary?.totalEntradas}
+  icon={ArrowDownLeft}
+  color="sage"
+/>
 
-      <SummaryCard
-        title="Total de Saídas"
-        value={summary?.totalSaidas}
-        icon={ArrowUpRight}
-        color="terracotta"
-        trend={-3.1}
-      />
-    </div>
-  )
-}
+<SummaryCard
+  title="Total de Saídas"
+  value={summary?.totalSaidas}
+  icon={ArrowUpRight}
+  color="terracotta"
+/>
