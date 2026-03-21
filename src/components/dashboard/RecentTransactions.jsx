@@ -26,7 +26,7 @@ const RecentTransactions = ({ transactions = [], maxItems = 5 }) => {
 
         return (
           <div
-            key={transaction?.id_pedido ?? index} // ✅ fallback seguro
+            key={transaction?.id ?? index} // ✅ fallback seguro
             className="flex items-center justify-between p-3 rounded-lg hover:bg-stone-50 transition-colors"
           >
             <div className="flex items-center gap-3">
