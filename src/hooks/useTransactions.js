@@ -30,7 +30,7 @@ const normalizeTransaction = (t) => {
       const { data, error: fetchError } = await supabase
         .from('pedidos_mover')
         .select('*')
-        .order('id_pedido', { ascending: false })
+        .order('id', { ascending: false })
 
       if (fetchError) throw fetchError
 
