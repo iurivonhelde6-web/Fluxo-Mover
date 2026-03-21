@@ -39,7 +39,6 @@ export const useTransactions = () => {
     } finally {
       setLoading(false)
     }
-  }
 
   useEffect(() => {
     fetchTransactions()
